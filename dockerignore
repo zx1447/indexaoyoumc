@@ -1,0 +1,7 @@
+# 依赖目录（npm install 用）
+node_modules
+*.log
+.env
+.git
+.gitignore
+data/
