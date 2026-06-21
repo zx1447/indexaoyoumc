@@ -1,0 +1,96 @@
+# 傲游面板 Docker Compose 部署
+# 使用方法：
+#   1. 把 index.js 和本文件放同一目录
+#   2. docker compose up -d --build
+#   3. 访问 http://服务器IP:4237（默认密码 1715）
+
+services:
+  aoyou-panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aoyou-panel:latest
+    container_name: aoyou-panel
+    restart: unless-stopped
+
+    # 端口映射
+    # - 4237: 主面板（必填）
+    # - 8080: 代理服务器（仅使用代理功能时需要）
+    ports:
+      - "4237:4237"
+      - "8080:8080"
+
+    # 环境变量（可选，覆盖默认值）
+    environment:
+      - SERVER_PORT=4237
+      - TZ=Asia/Shanghai
+      # - BOT_HOST=127.0.0.1        # 嵌入式 MC bot 目标服务器
+      # - BOT_PORT=25565
+      # - BOT_NAME=Player_001
+
+    # 数据持久化（重要！不挂载的话重启配置全丢）
+    volumes:
+      # 主配置文件（机器人/任务/系统守护/哪吒）
+      - ./data/config:/app/node_modules/.aoyou
+      - ./data/bots:/app/node_modules/.bots_config.json
+      - ./data/tasks:/app/node_modules/.task_center_config.json
+      - ./data/guard:/app/node_modules/.system_guard.json
+
+      # 哪吒探针配置（XOR 加密的）
+      - ./data/nezha:/app/node_modules/.Error log
+
+      # 代理服务器配置
+      - ./data/proxy:/app/node_modules/.RoamingMusic
+
+      # 应用中心各工具的配置和日志
+      - ./data/firefox:/app/node_modules/.firefox
+      - ./data/alist:/app/node_modules/.alist
+      - ./data/sshx:/app/node_modules/.sshx
+      - ./data/code-server:/app/node_modules/.code-server
+      - ./data/app-center:/app/node_modules/.aoyouyingyong
+
+      # 构建中心（Java 反编译）
+      - ./data/build-center:/app/node_modules/.build-center
+
+      # 缓存
+      - ./data/cache:/app/node_modules/.cache
+
+    # 资源限制（可选）
+    # 面板本身约 200MB 内存，开代理/MC bot 后可能到 512MB
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+        reservations:
+          memory: 256M
+
+    # 日志限制（防止日志撑爆磁盘）
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # 安全设置（可选，更安全但可能影响某些功能）
+    # 如果不用代理功能，可以加这些限制
+    # security_opt:
+    #   - no-new-privileges:true
+    # cap_drop:
+    #   - ALL
+    # cap_add:
+    #   - CHOWN
+    #   - SETUID
+    #   - SETGID
+
+    # 如果用代理功能需要 NET_ADMIN（用于 WARP 等网络配置）
+    # cap_add:
+    #   - NET_ADMIN
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4237/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
