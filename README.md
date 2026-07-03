@@ -71,13 +71,10 @@ See Actions tab for build history.
 
 ## 🐳 Base Image
 
-This image uses **`node:20-alpine`** (~50MB) with `gcompat` for glibc binary compatibility.
+This image uses **`node:22-slim`** (~250MB) — runs as **root**.
 
-Why not `node:22-slim`?
-- Alpine is ~70% smaller (~80MB vs ~250MB final image)
-- Faster pulls on PaaS platforms (Render, StackShift, Fly.io)
-- `gcompat` + `libc6-compat` allow runtime-downloaded glibc binaries (cloudflared, xray, nezha-agent, etc.) to work on musl
+**Best for**: VPS, Docker hosts, and platforms that allow root containers.
 
-Why non-root?
-- PaaS free plans (Render, StackShift) reject root containers with "enhanced workload isolation requires Pro plan"
-- This Dockerfile creates a dedicated `appuser` and switches to it before `CMD`
+**Not suitable for**: PaaS free plans (Render, StackShift, Koyeb) that require
+non-root containers. For those platforms, check the git history for the Alpine
+non-root variant (commit `a60edf2` onward).
