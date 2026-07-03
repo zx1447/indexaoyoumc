@@ -71,10 +71,22 @@ See Actions tab for build history.
 
 ## 🐳 Base Image
 
-This image uses **`node:22-slim`** (~250MB) — runs as **root**.
+This image uses **`node:22-slim`** (~250MB) — runs as **non-root** user `appuser` (UID 1001).
 
-**Best for**: VPS, Docker hosts, and platforms that allow root containers.
+**Why non-root?**
+- PaaS free plans (Render, Koyeb) reject root containers with
+  "enhanced workload isolation requires the Pro plan or higher"
+- Also works fine on VPS / Docker hosts (non-root is just safer)
 
-**Not suitable for**: PaaS free plans (Render, StackShift, Koyeb) that require
-non-root containers. For those platforms, check the git history for the Alpine
-non-root variant (commit `a60edf2` onward).
+**Why node:22-slim and not alpine?**
+- Some deps require Node 22+
+- glibc native: all runtime-downloaded binaries (cloudflared, xray,
+  nezha-agent, alist, etc.) work without gcompat compatibility layer
+- No `Illegal instruction` crashes under QEMU arm64 emulation
+
+**Compatibility:**
+- ✅ VPS / Docker hosts (root or non-root)
+- ✅ Render Free / Starter / Pro
+- ✅ Koyeb Free
+- ✅ Fly.io
+- ⚠️ StackShift — may have platform bugs (caddy issues), not recommended
