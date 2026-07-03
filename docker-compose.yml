@@ -1,96 +1,74 @@
-# 傲游面板 Docker Compose 部署
-# 使用方法：
-#   1. 把 index.js 和本文件放同一目录
+# ============================================
+# docker-compose.yml for Pathfinder Pro 2025
+# ============================================
+# Usage:
+#   1. Put index.js + package.json + Dockerfile in the same directory
 #   2. docker compose up -d --build
-#   3. 访问 http://服务器IP:4237（默认密码 1715）
+#   3. Access: http://SERVER_IP:4237  (default password: 1715)
+#
+# Data persistence:
+#   All config and runtime data is stored in the named volume `app_data`,
+#   which maps to /app/node_modules inside the container.
+#   This survives container rebuilds and restarts.
 
 services:
-  aoyou-panel:
+  pathfinder:
     build:
       context: .
       dockerfile: Dockerfile
-    image: aoyou-panel:latest
-    container_name: aoyou-panel
+    # If you've pushed to a registry instead, comment out `build:` and use:
+    # image: ghcr.io/yourname/pathfinder-pro:latest
+    container_name: pathfinder-pro
     restart: unless-stopped
 
-    # 端口映射
-    # - 4237: 主面板（必填）
-    # - 8080: 代理服务器（仅使用代理功能时需要）
     ports:
-      - "4237:4237"
-      - "8080:8080"
+      - "${HOST_PORT:-4237}:4237"
 
-    # 环境变量（可选，覆盖默认值）
     environment:
       - SERVER_PORT=4237
+      - NODE_ENV=production
       - TZ=Asia/Shanghai
-      # - BOT_HOST=127.0.0.1        # 嵌入式 MC bot 目标服务器
-      # - BOT_PORT=25565
-      # - BOT_NAME=Player_001
+      # Uncomment to override the default port inside the container:
+      # - SERVER_PORT=8080
 
-    # 数据持久化（重要！不挂载的话重启配置全丢）
     volumes:
-      # 主配置文件（机器人/任务/系统守护/哪吒）
-      - ./data/config:/app/node_modules/.aoyou
-      - ./data/bots:/app/node_modules/.bots_config.json
-      - ./data/tasks:/app/node_modules/.task_center_config.json
-      - ./data/guard:/app/node_modules/.system_guard.json
+      # Persist ALL app data (bot configs, task center, nezha, proxy,
+      # downloaded binaries, referral accounts, welcome voice, etc.)
+      # On first run, Docker auto-copies the image's node_modules content
+      # into this volume, so npm packages are preserved.
+      - app_data:/app/node_modules
 
-      # 哪吒探针配置（XOR 加密的）
-      - ./data/nezha:/app/node_modules/.Error log
+    # ---- Signal & shutdown tuning ----
+    # The app intercepts SIGTERM when "system guard" is enabled.
+    # Give it 15s to shut down gracefully, then force-kill.
+    stop_grace_period: 15s
+    stop_signal: SIGTERM
 
-      # 代理服务器配置
-      - ./data/proxy:/app/node_modules/.RoamingMusic
-
-      # 应用中心各工具的配置和日志
-      - ./data/firefox:/app/node_modules/.firefox
-      - ./data/alist:/app/node_modules/.alist
-      - ./data/sshx:/app/node_modules/.sshx
-      - ./data/code-server:/app/node_modules/.code-server
-      - ./data/app-center:/app/node_modules/.aoyouyingyong
-
-      # 构建中心（Java 反编译）
-      - ./data/build-center:/app/node_modules/.build-center
-
-      # 缓存
-      - ./data/cache:/app/node_modules/.cache
-
-    # 资源限制（可选）
-    # 面板本身约 200MB 内存，开代理/MC bot 后可能到 512MB
+    # ---- Resource limits (optional, adjust to your server) ----
+    # The app spawns child processes (cloudflared, xray, firefox, etc.)
+    # so it can be memory-hungry. 512MB is a reasonable minimum.
     deploy:
       resources:
         limits:
           memory: 1G
-          cpus: '2.0'
         reservations:
           memory: 256M
 
-    # 日志限制（防止日志撑爆磁盘）
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-    # 安全设置（可选，更安全但可能影响某些功能）
-    # 如果不用代理功能，可以加这些限制
-    # security_opt:
-    #   - no-new-privileges:true
-    # cap_drop:
-    #   - ALL
-    # cap_add:
-    #   - CHOWN
-    #   - SETUID
-    #   - SETGID
-
-    # 如果用代理功能需要 NET_ADMIN（用于 WARP 等网络配置）
-    # cap_add:
-    #   - NET_ADMIN
-
-    # 健康检查
+    # ---- Health check (optional) ----
+    # Checks if the web panel is responding
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4237/"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:4237/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 30s
+
+    # ---- Security (optional but recommended) ----
+    # The app needs to spawn child processes and download binaries,
+    # so we can't lock down too aggressively. These are safe defaults.
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  app_data:
+    driver: local
