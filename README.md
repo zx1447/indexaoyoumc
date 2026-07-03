@@ -1,6 +1,6 @@
 # Pathfinder Pro 2025
 
-Advanced Mineflayer-based bot framework with pathfinding, Express web interface, Nezha probe, and proxy support.
+Advanced Mineflayer-based bot framework with pathfinding, 
 
 ## 🚀 Quick Start
 
