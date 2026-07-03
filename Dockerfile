@@ -17,11 +17,13 @@ RUN groupadd -r -g 1001 appuser \
     && chown -R 1001:1001 /app
 
 ENV SERVER_PORT=4237 \
+    PORT=4237 \
     NODE_ENV=production \
     TZ=Asia/Shanghai \
     HOME=/app
 
 EXPOSE 4237
+EXPOSE 8080
 
 VOLUME ["/app/node_modules"]
 
