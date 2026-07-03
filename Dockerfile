@@ -11,11 +11,9 @@ COPY package.json ./
 RUN npm install --omit=dev && npm cache clean --force
 
 COPY index.js ./
-COPY entrypoint.sh /entrypoint.sh
 
 RUN groupadd -r -g 1001 appuser \
     && useradd -r -g appuser -u 1001 -d /app -s /usr/sbin/nologin appuser \
-    && chmod +x /entrypoint.sh \
     && chown -R 1001:1001 /app
 
 ENV SERVER_PORT=4237 \
@@ -29,5 +27,5 @@ VOLUME ["/app/node_modules"]
 
 USER 1001:1001
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "index.js"]
