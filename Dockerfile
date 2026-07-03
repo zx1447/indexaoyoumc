@@ -1,31 +1,38 @@
 # ============================================
-# Dockerfile for Pathfinder Pro 2025 (V104) — Alpine Edition
+# Dockerfile for Pathfinder Pro 2025 (V104) — PaaS-Compatible Alpine Edition
 # ============================================
 # Base: node:20-alpine (~50MB) + gcompat for glibc binary compatibility
 #
-# Why gcompat?
-#   The app downloads pre-compiled glibc binaries at runtime (cloudflared,
-#   xray, nezha-agent, wgcf, alist, etc.). Alpine uses musl libc by default,
-#   which can't run glibc binaries. gcompat is a glibc compatibility layer
-#   that lets most glibc binaries run on musl without modification.
+# IMPORTANT FOR PAAS FREE PLANS (Render, StackShift, Railway, etc.):
+# These platforms reject containers that:
+#   1. Run as root
+#   2. Write to system paths (/etc, /usr, /var, etc.) at runtime
+#   3. Require privileged mode (access to /proc, /sys)
+#
+# This Dockerfile is designed to avoid ALL THREE triggers:
+#   - Runs as non-root `appuser` (UID 1000)
+#   - All runtime writes happen in /app (writable volume)
+#   - No /proc, /sys, or privileged operations
+#   - Timezone set via TZ env var (no /etc writes)
 #
 # Final image size: ~80MB (vs ~250MB for node:22-slim)
-#
-# IMPORTANT: Runs as non-root user (appuser) for compatibility with
-# PaaS platforms (Render, StackShift, etc.) that require non-root
-# containers on free plans.
+# Multi-arch: linux/amd64 + linux/arm64
 
 FROM node:20-alpine
 
 # ---- System dependencies (Alpine apk) ----
 # gcompat:        glibc compatibility layer (CRITICAL for runtime binaries)
+# libc6-compat:   additional glibc compat libs
 # tini:           PID 1 signal forwarding
 # procps:         `ps` command for process management
-# tzdata:         timezone data
+# tzdata:         timezone data (used via TZ env var, no /etc writes)
 # curl, wget:     runtime binary downloads
 # unzip, zip:     archive handling
 # ca-certificates: HTTPS downloads
-# libc6-compat:   additional glibc compat libs (works alongside gcompat)
+#
+# NOTE: Do NOT write to /etc/localtime or /etc/timezone here.
+# PaaS platforms detect writes to /etc as "needs enhanced isolation".
+# Use the TZ env var instead — Alpine/musl reads TZ directly.
 RUN apk add --no-cache \
         gcompat \
         libc6-compat \
@@ -36,9 +43,7 @@ RUN apk add --no-cache \
         wget \
         unzip \
         zip \
-        ca-certificates \
-    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
+        ca-certificates
 
 WORKDIR /app
 
@@ -53,24 +58,28 @@ COPY index.js ./
 
 # ---- Pre-create runtime data directories ----
 # The app stores config/data inside node_modules/ subdirectories.
+# All of these live under /app (the writable volume on PaaS).
 RUN mkdir -p \
         node_modules/.aoyou \
         "node_modules/.Error log" \
         node_modules/.RoamingMusic \
         node_modules/.aoyouyingyong \
-        node_modules/.referral_accounts \
-        "/tmp/.Error log"
+        node_modules/.referral_accounts
 
-# ---- Create non-root user (Alpine syntax) ----
-# This is REQUIRED for PaaS free plans (Render, StackShift) — otherwise
-# they reject the container with "enhanced workload isolation requires
-# the Pro plan or higher".
-RUN addgroup -S appuser \
-    && adduser -S -G appuser -h /app -s /sbin/nologin appuser \
-    && chown -R appuser:appuser /app \
-    && chown -R appuser:appuser "/tmp/.Error log"
+# ---- Create non-root user with fixed UID (Alpine syntax) ----
+# Fixed UID 1000 is important: some PaaS platforms remap UIDs,
+# and using a well-known UID avoids permission issues with volumes.
+# -D: don't assign password
+# -H: don't create home dir (we set -h /app explicitly)
+# -u: explicit UID
+RUN addgroup -S -g 1000 appuser \
+    && adduser -S -G appuser -h /app -s /sbin/nologin -u 1000 -D appuser \
+    && chown -R 1000:1000 /app
 
 # ---- Environment defaults ----
+# TZ env var tells musl to use this timezone (no /etc writes needed)
+# HOME=/app so any tool reading $HOME works correctly
+# NODE_ENV=production for smaller Node memory footprint
 ENV SERVER_PORT=4237 \
     NODE_ENV=production \
     TZ=Asia/Shanghai \
@@ -79,8 +88,11 @@ ENV SERVER_PORT=4237 \
 # Expose the web panel port
 EXPOSE 4237
 
+# Declare /app as a volume so PaaS knows it's writable
+VOLUME ["/app/node_modules"]
+
 # Switch to non-root user for ALL subsequent operations
-USER appuser
+USER 1000:1000
 
 # Use tini as init for proper signal handling
 ENTRYPOINT ["/sbin/tini", "--"]
