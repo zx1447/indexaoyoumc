@@ -1,0 +1,43 @@
+# ---- Node.js ----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm/
+
+# ---- Runtime data (运行时数据，存在 Docker volume 里，不进 git) ----
+node_modules/.aoyou/
+node_modules/.Error log/
+node_modules/.RoamingMusic/
+node_modules/.aoyouyingyong/
+node_modules/.referral_accounts/
+node_modules/.bots_config.json
+node_modules/.task_center_config.json
+node_modules/.system_guard.json
+node_modules/.reboot_schedule.json
+node_modules/welcome_voice.mp3
+
+# ---- Backups ----
+*.zip
+*.tar.gz
+restore_*.zip
+
+# ---- Logs ----
+*.log
+nezha_debug.log
+
+# ---- OS files ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Editor files ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- Local env files ----
+.env
+.env.local
+.env.*.local

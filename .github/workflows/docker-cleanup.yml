@@ -1,0 +1,40 @@
+name: Clean GHCR Images
+
+# ============================================================
+# 定时清理 GHCR 旧镜像
+# 每周一 11:00 (北京时间) 自动执行
+# ============================================================
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+
+jobs:
+  clean-untagged:
+    name: Remove untagged images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clean untagged packages
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.repository }}
+          package-type: container
+          delete-untagged-versions: true
+          min-versions-to-keep: 10
+
+  clean-old-tagged:
+    name: Remove old tagged versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clean old tagged packages (keep last 20)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.repository }}
+          package-type: container
+          delete-untagged-versions: false
+          min-versions-to-keep: 20
