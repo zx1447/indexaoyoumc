@@ -66,15 +66,14 @@ RUN mkdir -p \
         node_modules/.aoyouyingyong \
         node_modules/.referral_accounts
 
-# ---- Create non-root user with fixed UID (Alpine syntax) ----
-# Fixed UID 1000 is important: some PaaS platforms remap UIDs,
-# and using a well-known UID avoids permission issues with volumes.
+# ---- Create non-root user (Alpine syntax) ----
+# UID/GID 1001 (1000 is already used by the 'node' user in node:alpine images)
 # -D: don't assign password
 # -H: don't create home dir (we set -h /app explicitly)
 # -u: explicit UID
-RUN addgroup -S -g 1000 appuser \
-    && adduser -S -G appuser -h /app -s /sbin/nologin -u 1000 -D appuser \
-    && chown -R 1000:1000 /app
+RUN addgroup -S -g 1001 appuser \
+    && adduser -S -G appuser -h /app -s /sbin/nologin -u 1001 -D appuser \
+    && chown -R 1001:1001 /app
 
 # ---- Environment defaults ----
 # TZ env var tells musl to use this timezone (no /etc writes needed)
@@ -92,7 +91,7 @@ EXPOSE 4237
 VOLUME ["/app/node_modules"]
 
 # Switch to non-root user for ALL subsequent operations
-USER 1000:1000
+USER 1001:1001
 
 # Use tini as init for proper signal handling
 ENTRYPOINT ["/sbin/tini", "--"]
