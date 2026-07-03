@@ -1,6 +1,6 @@
 # Pathfinder Pro 2025
 
-Advanced Mineflayer-based bot framework with pathfinding, 
+
 
 ## 🚀 Quick Start
 
