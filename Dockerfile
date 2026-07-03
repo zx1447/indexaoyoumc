@@ -81,6 +81,9 @@ RUN addgroup -S -g 1001 appuser \
     && chown -R 1001:1001 /app
 
 # ---- Environment defaults ----
+# SERVER_PORT: app listens here (StackShift probes port 3000 by default,
+#              Render uses the EXPOSE'd port or PORT env)
+# Set SERVER_PORT=3000 in StackShift env vars to match their probe.
 # TZ env var tells musl to use this timezone (no /etc writes needed)
 # HOME=/app so any tool reading $HOME works correctly
 # NODE_ENV=production for smaller Node memory footprint
@@ -89,8 +92,11 @@ ENV SERVER_PORT=4237 \
     TZ=Asia/Shanghai \
     HOME=/app
 
-# Expose the web panel port
+# Expose BOTH ports:
+#   - 4237: default app port (Render / VPS)
+#   - 3000: StackShift default probe port (set SERVER_PORT=3000 to use)
 EXPOSE 4237
+EXPOSE 3000
 
 # Declare /app as a volume so PaaS knows it's writable
 VOLUME ["/app/node_modules"]
