@@ -1,7 +1,7 @@
 # ============================================
 # Dockerfile for Pathfinder Pro 2025 (V104) — PaaS-Compatible Alpine Edition
 # ============================================
-# Base: node:20-alpine (~50MB) + gcompat for glibc binary compatibility
+# Base: node:22-alpine (~60MB) + gcompat for glibc binary compatibility
 #
 # IMPORTANT FOR PAAS FREE PLANS (Render, StackShift, Railway, etc.):
 # These platforms reject containers that:
@@ -10,15 +10,20 @@
 #   3. Require privileged mode (access to /proc, /sys)
 #
 # This Dockerfile is designed to avoid ALL THREE triggers:
-#   - Runs as non-root `appuser` (UID 1000)
+#   - Runs as non-root `appuser` (UID 1001)
 #   - All runtime writes happen in /app (writable volume)
 #   - No /proc, /sys, or privileged operations
 #   - Timezone set via TZ env var (no /etc writes)
 #
-# Final image size: ~80MB (vs ~250MB for node:22-slim)
+# Final image size: ~90MB (vs ~250MB for node:22-slim)
 # Multi-arch: linux/amd64 + linux/arm64
+#
+# Why node:22-alpine and not node:20-alpine?
+#   - Some deps require Node 22+ (EBADENGINE on Node 20)
+#   - Node 22 builds correctly under QEMU arm64 emulation
+#   - node:22-alpine uses musl 1.2.x (good gcompat compat)
 
-FROM node:20-alpine
+FROM node:22-alpine
 
 # ---- System dependencies (Alpine apk) ----
 # gcompat:        glibc compatibility layer (CRITICAL for runtime binaries)
