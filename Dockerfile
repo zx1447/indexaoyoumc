@@ -51,7 +51,7 @@ RUN mkdir -p \
         node_modules/.RoamingMusic \
         node_modules/.aoyouyingyong \
         node_modules/.referral_accounts \
-        /tmp/.Error log
+        "/tmp/.Error log"
 
 # ---- Create non-root user and grant ownership ----
 # This is REQUIRED for Render Free plan (otherwise it triggers
@@ -59,7 +59,7 @@ RUN mkdir -p \
 RUN groupadd -r appuser \
     && useradd -r -g appuser -d /app -s /sbin/nologin appuser \
     && chown -R appuser:appuser /app \
-    && chown -R appuser:appuser /tmp/.Error\ log
+    && chown -R appuser:appuser "/tmp/.Error log"
 
 # ---- Environment defaults ----
 ENV SERVER_PORT=4237 \
