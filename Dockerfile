@@ -16,9 +16,7 @@ RUN groupadd -r -g 1001 appuser \
     && useradd -r -g appuser -u 1001 -d /app -s /usr/sbin/nologin appuser \
     && chown -R 1001:1001 /app
 
-ENV SERVER_PORT=4237 \
-    PORT=4237 \
-    NODE_ENV=production \
+ENV NODE_ENV=production \
     TZ=Asia/Shanghai \
     HOME=/app
 
@@ -29,5 +27,5 @@ VOLUME ["/app/node_modules"]
 
 USER 1001:1001
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["node", "index.js"]
+ENTRYPOINT ["/usr/bin/tini", "--", "sh", "-c", "export SERVER_PORT=${SERVER_PORT:-${PORT:-4237}}; exec node index.js"]
+CMD []
