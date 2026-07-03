@@ -11,6 +11,7 @@ COPY package.json ./
 RUN npm install --omit=dev && npm cache clean --force
 
 COPY index.js ./
+COPY keepalive.js ./
 
 RUN groupadd -r -g 1001 appuser \
     && useradd -r -g appuser -u 1001 -d /app -s /usr/sbin/nologin appuser \
@@ -27,5 +28,5 @@ VOLUME ["/app/node_modules"]
 
 USER 1001:1001
 
-ENTRYPOINT ["/usr/bin/tini", "--", "sh", "-c", "export SERVER_PORT=${SERVER_PORT:-${PORT:-4237}}; exec node index.js"]
+ENTRYPOINT ["/usr/bin/tini", "--", "sh", "-c", "export SERVER_PORT=${SERVER_PORT:-${PORT:-4237}}; node keepalive.js & exec node index.js"]
 CMD []
