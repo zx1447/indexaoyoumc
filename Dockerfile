@@ -1,41 +1,50 @@
 # ============================================
-# Dockerfile for Pathfinder Pro 2025 (V104)
+# Dockerfile for Pathfinder Pro 2025 (V104) — Alpine Edition
 # ============================================
-# Base: Debian-based Node 22 slim (glibc, ensures downloaded binaries like
-# cloudflared / xray / nezha-agent work without musl compatibility issues)
+# Base: node:20-alpine (~50MB) + gcompat for glibc binary compatibility
+#
+# Why gcompat?
+#   The app downloads pre-compiled glibc binaries at runtime (cloudflared,
+#   xray, nezha-agent, wgcf, alist, etc.). Alpine uses musl libc by default,
+#   which can't run glibc binaries. gcompat is a glibc compatibility layer
+#   that lets most glibc binaries run on musl without modification.
+#
+# Final image size: ~80MB (vs ~250MB for node:22-slim)
 #
 # IMPORTANT: Runs as non-root user (appuser) for compatibility with
-# PaaS platforms like Render that require "enhanced workload isolation"
-# on the Pro plan when containers run as root.
+# PaaS platforms (Render, StackShift, etc.) that require non-root
+# containers on free plans.
 
-FROM node:22-slim
+FROM node:20-alpine
 
-# ---- System dependencies ----
+# ---- System dependencies (Alpine apk) ----
+# gcompat:        glibc compatibility layer (CRITICAL for runtime binaries)
+# tini:           PID 1 signal forwarding
+# procps:         `ps` command for process management
+# tzdata:         timezone data
+# curl, wget:     runtime binary downloads
+# unzip, zip:     archive handling
 # ca-certificates: HTTPS downloads
-# curl + wget: runtime binary downloads (cloudflared, xray, nezha, etc.)
-# unzip + zip: archive handling (adm-zip fallback, restore backups)
-# procps: `ps` command used by process management
-# tzdata: timezone support (TZ=Asia/Shanghai)
-# tini: proper PID 1 signal forwarding (installed via apt)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates \
+# libc6-compat:   additional glibc compat libs (works alongside gcompat)
+RUN apk add --no-cache \
+        gcompat \
+        libc6-compat \
+        tini \
+        procps \
+        tzdata \
         curl \
         wget \
         unzip \
         zip \
-        procps \
-        tzdata \
-        tini \
-    && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone \
-    && rm -rf /var/lib/apt/lists/*
+        ca-certificates \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone
 
 WORKDIR /app
 
 # ---- Install Node dependencies ----
 # Copy package.json first for better layer caching.
-# Do this BEFORE creating the non-root user so npm install runs as root
-# (avoids permission issues when writing to node_modules).
+# Run npm install as root before switching to non-root user.
 COPY package.json ./
 RUN npm install --omit=dev && npm cache clean --force
 
@@ -44,7 +53,6 @@ COPY index.js ./
 
 # ---- Pre-create runtime data directories ----
 # The app stores config/data inside node_modules/ subdirectories.
-# Pre-creating them ensures they exist on first run.
 RUN mkdir -p \
         node_modules/.aoyou \
         "node_modules/.Error log" \
@@ -53,11 +61,12 @@ RUN mkdir -p \
         node_modules/.referral_accounts \
         "/tmp/.Error log"
 
-# ---- Create non-root user and grant ownership ----
-# This is REQUIRED for Render Free plan (otherwise it triggers
-# "enhanced workload isolation requires the Pro plan or higher").
-RUN groupadd -r appuser \
-    && useradd -r -g appuser -d /app -s /sbin/nologin appuser \
+# ---- Create non-root user (Alpine syntax) ----
+# This is REQUIRED for PaaS free plans (Render, StackShift) — otherwise
+# they reject the container with "enhanced workload isolation requires
+# the Pro plan or higher".
+RUN addgroup -S appuser \
+    && adduser -S -G appuser -h /app -s /sbin/nologin appuser \
     && chown -R appuser:appuser /app \
     && chown -R appuser:appuser "/tmp/.Error log"
 
@@ -74,7 +83,7 @@ EXPOSE 4237
 USER appuser
 
 # Use tini as init for proper signal handling
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--"]
 
 # Start the app
 CMD ["node", "index.js"]

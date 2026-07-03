@@ -68,3 +68,16 @@ Push to `main` → auto build → publish to GHCR.
 Tag `v1.0.0` → auto build → publish with version tags.
 
 See Actions tab for build history.
+
+## 🐳 Base Image
+
+This image uses **`node:20-alpine`** (~50MB) with `gcompat` for glibc binary compatibility.
+
+Why not `node:22-slim`?
+- Alpine is ~70% smaller (~80MB vs ~250MB final image)
+- Faster pulls on PaaS platforms (Render, StackShift, Fly.io)
+- `gcompat` + `libc6-compat` allow runtime-downloaded glibc binaries (cloudflared, xray, nezha-agent, etc.) to work on musl
+
+Why non-root?
+- PaaS free plans (Render, StackShift) reject root containers with "enhanced workload isolation requires Pro plan"
+- This Dockerfile creates a dedicated `appuser` and switches to it before `CMD`
