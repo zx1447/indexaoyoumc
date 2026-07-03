@@ -1,7 +1,42 @@
-# 依赖目录（npm install 用）
-node_modules
-*.log
-.env
+# ---- Version control ----
 .git
 .gitignore
-data/
+.gitattributes
+
+# ---- Node.js ----
+node_modules
+npm-debug.log
+yarn-error.log
+.npm
+
+# ---- Docker ----
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.*.yml
+
+# ---- Documentation ----
+*.md
+README
+LICENSE
+
+# ---- Runtime data (don't bake into image) ----
+data
+*.log
+*.tmp
+
+# ---- OS files ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Editor files ----
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# ---- CI/CD ----
+.github
+.gitlab-ci.yml
