@@ -1,12 +1,4 @@
-# Pathfinder Pro 2025
 
-
-
-## 🚀 Quick Start
-
-### Option A: Docker (recommended)
-
-```bash
 # Pull and run prebuilt image from GHCR
 echo $GITHUB_TOKEN | docker login ghcr.io -u zx1447 --password-stdin
 docker compose -f docker-compose.ghcr.yml pull
