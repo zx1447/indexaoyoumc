@@ -1,0 +1,17 @@
+application:
+  name: indexaoyoumc
+  pods:
+    - name: app
+      image: "registry.nexlayer.io/user_01kx8edrnxdzsnd161b23n22kp/indexaoyoumc:19f50fdf543"
+      path: /
+      servicePorts:
+        - 4237
+      vars:
+        NODE_ENV: "production"
+        SERVER_PORT: "4237"
+        TZ: "Asia/Shanghai"
+        HOSTNAME: "0.0.0.0"
+      volumes:
+        - name: indexaoyoumc-app-data
+          size: 2Gi
+          mountPath: /app/app_data
