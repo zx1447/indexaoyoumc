@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js",
+    "start": "node launcher.js",
+    "start:raw": "node index.js",
     "install-v": "npm install"
   },
   "engines": {
