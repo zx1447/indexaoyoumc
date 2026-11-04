@@ -47,6 +47,8 @@ for (let attempt = 1; attempt <= 3 && depsMissing(); attempt++) {
 }
 
 // ---- 3. Reverse proxies so the platform router finds the app ----
+// listen() without host binds '::' dual-stack (IPv4+IPv6) so the
+// platform router reaches the proxy regardless of address family.
 function startProxy(listenPort, targetPort) {
   if (!listenPort || listenPort === targetPort) return;
   const server = http.createServer((req, res) => {
@@ -81,12 +83,11 @@ function startProxy(listenPort, targetPort) {
     clientSocket.on('error', () => upstream.destroy());
   });
   server.on('error', (e) => console.log(`[launcher] proxy :${listenPort} skipped (${e.code})`));
-  server.listen(listenPort, '0.0.0.0', () =>
+  server.listen(listenPort, () =>
     console.log(`[launcher] proxy :${listenPort} -> :${targetPort}`));
 }
 
-startProxy(3000, APP_PORT);
-startProxy(8080, APP_PORT);
+[80, 3000, 5000, 8000, 8080, 8888, 9000].forEach((p) => startProxy(p, APP_PORT));
 startProxy(parseInt(process.env.PORT, 10) || 0, APP_PORT);
 
 // ---- 4. Keepalive daemon (pure node, no deps) ----
